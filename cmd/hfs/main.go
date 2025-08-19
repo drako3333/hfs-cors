@@ -8,8 +8,14 @@ import (
 	"os"
 
 	"github.com/c0va23/go-proxyprotocol"
+	"github.com/rs/cors" // AJOUTÉ : Importer la bibliothèque CORS
 	"github.com/zhangyoufu/hfs"
 )
+
+// La fonction umask est nécessaire pour compiler votre code original sous non-Linux.
+func umask(mask int) int {
+	return 0 // Implémentation factice pour Windows/autres OS
+}
 
 func main() {
 	var (
@@ -66,24 +72,44 @@ func main() {
 	ln := rawListener.(net.Listener)
 
 	if enableProxy {
-		// DefaultFallbackHeaderParserBuilder contains StubHeaderParserBuilder,
-		// which accepts non-PROXY protocol traffic
 		proxyListener := proxyprotocol.NewDefaultListener(ln)
 		ln = proxyListener
 	}
 
+	// MODIFIÉ : Créer le handler hfs d'abord
+	hfsHandler := &hfs.FileServer{
+		FileSystem:       http.Dir(root),
+		Sorter:           sorter,
+		AccessLog:        logger,
+		ErrorLog:         log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds),
+		DirectoryListing: dirList,
+		ServeDotFile:     dotFile,
+		ServeIndexPage:   indexPage,
+	}
+
+	// AJOUTÉ : Configurer le middleware CORS
+	corsHandler := cors.New(cors.Options{
+		// Pour la production, remplacez "*" par vos domaines autorisés.
+		// Exemple : []string{"https://mon-site.com", "https://mon-autre-site.com"}
+		AllowedOrigins: []string{"*"},
+
+		// Méthodes HTTP autorisées. Pour un serveur de fichiers, GET et HEAD suffisent.
+		// OPTIONS est géré automatiquement par la bibliothèque pour les requêtes "preflight".
+		AllowedMethods: []string{"GET", "HEAD", "OPTIONS"},
+
+		// Permet au navigateur d'envoyer des cookies ou des en-têtes d'authentification.
+		AllowCredentials: true,
+
+		// En-têtes autorisés
+		AllowedHeaders: []string{"*"},
+	}).Handler(hfsHandler) // <-- Encapsule le handler hfs original
+
 	server := http.Server{
-		Handler: &hfs.FileServer{
-			FileSystem:       http.Dir(root),
-			Sorter:           sorter,
-			AccessLog:        logger,
-			ErrorLog:         log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lmicroseconds),
-			DirectoryListing: dirList,
-			ServeDotFile:     dotFile,
-			ServeIndexPage:   indexPage,
-		},
+		// MODIFIÉ : Utiliser le handler encapsulé par CORS
+		Handler: corsHandler,
 		DisableGeneralOptionsHandler: true,
 	}
-	log.Printf("Serving %s on [%s] %s", root, network, address)
+
+	log.Printf("Serving %s on [%s] %s with CORS enabled", root, network, address)
 	log.Fatal(server.Serve(ln))
 }
