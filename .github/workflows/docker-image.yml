@@ -4,7 +4,7 @@ name: Build and Push Docker Image
 # Déclencheur du workflow
 on:
   push:
-    branches: [ "main" ] # Se déclenche lors d'un push sur la branche main
+    branches: [ "master" ] # Se déclenche lors d'un push sur la branche main
 
 # Jobs à exécuter
 jobs:
