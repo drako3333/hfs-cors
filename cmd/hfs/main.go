@@ -106,7 +106,7 @@ func main() {
 
 	server := http.Server{
 		// MODIFIÉ : Utiliser le handler encapsulé par CORS
-		Handler: corsHandler,
+		Handler:                      corsHandler,
 		DisableGeneralOptionsHandler: true,
 	}
 
