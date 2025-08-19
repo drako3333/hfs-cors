@@ -12,11 +12,6 @@ import (
 	"github.com/zhangyoufu/hfs"
 )
 
-// La fonction umask est nécessaire pour compiler votre code original sous non-Linux.
-func umask(mask int) int {
-	return 0 // Implémentation factice pour Windows/autres OS
-}
-
 func main() {
 	var (
 		network     string
