@@ -1,18 +1,43 @@
-name: Docker Image CI
+# Nom du workflow qui apparaîtra dans l'onglet "Actions" de GitHub
+name: Build and Push Docker Image
 
+# Déclencheur du workflow
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ] # Se déclenche lors d'un push sur la branche main
 
+# Jobs à exécuter
 jobs:
-
-  build:
-
+  build-and-push:
+    # Utilise la dernière version d'Ubuntu comme environnement d'exécution
     runs-on: ubuntu-latest
+    # Permissions nécessaires pour que le GITHUB_TOKEN puisse écrire sur le registre de paquets
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag hfs-cors:$(date +%s)
+      # 1. Récupère le code de votre répertoire
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Se connecte au GitHub Container Registry (GHCR)
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          # Le GITHUB_TOKEN est un secret généré automatiquement par GitHub
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Construit et pousse l'image Docker
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          # Contexte de build (la racine du projet)
+          context: .
+          # Pousse l'image vers le registre après la construction
+          push: true
+          # Définit les tags de l'image.
+          # ghcr.io/VOTRE_NOM/NOM_DU_REPO:latest
+          tags: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
