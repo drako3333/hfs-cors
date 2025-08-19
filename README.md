@@ -5,6 +5,7 @@ This is a modified version of `net/http.FileServer` to satisfy my use cases.
    * directory listing
    * serving index.html
    * serving dotfiles
+   * serving cors
 2. directory listing enhanced
    * add ../ entry
    * customizable sorting
